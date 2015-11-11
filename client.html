@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>openXO Javascript client test</title>
+    <script src="http://cdnjs.cloudflare.com/ajax/libs/jquery/2.0.2/jquery.min.js"></script>
+  </head>
+  <body>
+    
+    <div id="weather"></div>
+    <script>
+      /**
+       * Your task is to complete the weather.run function below.
+       *
+       * You'll need to adapt your Node.js submission to fetch the weather data as
+       * in the previous test.
+       *
+       * The weather.run function should do the following:
+       * 1. Use weather.loadWeather to fetch the current weather for a random location
+       * 2. Render a visual representation of the weather into the div with id "weather"
+       *
+       * Some rules:
+       * - You must not modify the provided getLocation method or the final call to weather.run
+       *   (no matter how badly written they are)
+       * - Adding methods to the weather object is fine, so is creating aditional objects
+       * - Adding external dependencies is fine as long as they're publicly available
+       *   http://cdnjs.com might be helpful
+       *
+       * Notes on callbacks:
+       * - All callbacks should follow the Node.js standard method signature:
+       *   function callback(error, result) { }
+       *
+       * Some things to consider:
+       * - Error handling
+       * - Optimisation
+       *
+       * Your submission will be tested using:
+       * - A recent stable version of Chrome
+       * - An up-to-date iPhone
+       */
+ 
+      /**
+       * This is my preferred way of defining objects as it allows me 
+       * to define private methods and properties. This is due to the fact 
+       * JavaScript only has function scope.
+       * This approach is recommended by Douglas Crocford: http://javascript.crockford.com/private.html
+       */
+      function ForecastIOService () {
+  
+        var that = this;
+        var apiKey = "d719a7f9319370c35230f42e7c60e099";
+        var baseUrl = "https://api.forecast.io/";
+  
+        /**
+         * Get forecast for coordinates
+         *
+         * Expects a latitude, a longitude and a callback function with the standard signature
+         * - function(err, res) { }
+         */
+        this.forecast = function(latitude, longitude, callback) {
+          var location = latitude + "," + longitude;
+          var path = "forecast/" + apiKey + "/" + location;
+          path += "?callback=?"; // JSONP request
+    
+          $.getJSON(baseUrl + path, function(json) {
+            callback(null, json.currently);
+          })
+          .fail(function(jqxhr, textStatus, error) {
+            var err = textStatus + ', ' + error; 
+            callback(err, null);
+          });
+    
+        };
+ 
+      };
+      
+      var weather = {
+        
+        /**
+         * Get coordinates for a random location
+         *
+         * Expects a callback function with the standard signature
+         * - function(err, res) { }
+         * 
+         * A successful result is an array of the form: [lat, long]
+         *
+         * DO NOT MODIFY
+         */
+        getLocation: function(c) {
+          var l=[[],[51.507, -0.127],[55.676, 12.568]]
+            , i=Math.round(Math.random()*3);
+          (i<3) ? c(null,l[i]) : c("Fail",null);
+        },
+        
+        /**
+         * Load weather from an external data source and log the results
+         */
+        loadWeather: function(callback) {
+          var that = this;
+          this.getLocation(function(error, location) {
+            var err = that.getLocationErrorMessage(error, location);
+            var res;
+      
+            if (err) {
+              callback(err, res);
+      	      return;
+            }
+      
+            var service = new ForecastIOService();
+            var latitude = location.shift();
+            var longitude = location.shift();
+            service.forecast(latitude, longitude, callback);
+          });
+        },
+        
+        /**
+         * Get the weather and represent
+         */
+        run: function() {
+          var that = this;
+          var callback = function(err, res) {
+            var container = $("#weather");
+            if (err) {
+              container.append(that.generateErrorHtml(err));
+              return;
+            }
+            container.append(that.generateSuccessHtml(res));
+          };
+          this.loadWeather(callback);
+        },
+        
+        generateErrorHtml: function(err) {
+          var h1 = $("<h1>").text("An error occured");
+          var p = $("<p>").addClass("error").text(err);
+          return h1[0].outerHTML + p[0].outerHTML;
+        },
+        
+        generateSuccessHtml: function(data) {
+          var h1 = $("<h1>").text("Weather");
+          var list = $("<ul>");
+          for (key in data) {
+            list.append($("<li>").text(key + ": " + data[key]));
+          }
+          return h1[0].outerHTML + list[0].outerHTML;
+        },
+        
+        getLocationErrorMessage: function(error, location) {
+          var err;
+    
+          if (error) {
+            err = "getLocation() failed";
+          } else if (!location || 2 !== location.length) {
+            err = "getLocation() did not return valid coordinates";
+          }
+    
+          return err;
+        }
+        
+      };
+      
+      /**
+       *  This is how we'll use the function when testing.
+       *
+       * DO NOT MODIFY
+       */
+      $(document).ready(function() {
+        weather.run();
+      });
+    </script>
+    
+  </body>
+</html>
